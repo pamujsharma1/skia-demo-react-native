@@ -54,10 +54,7 @@ export default function ImageEditorScreen({ route }) {
     const navigation = useNavigation();
 
     // Load a font for Text shapes
-    const customFont = useFont(require('../../assets/Roboto-Regular.ttf'), 32);
-    // Fallback system font if custom font fails to load
-    const systemFont = Skia.FontMgr.Ref().matchFamilyStyle("serif", Skia.FontStyle.Normal);
-    const font = customFont || (systemFont ? new Skia.Font(systemFont, 32) : null);
+    const font = useFont(require('../../assets/Roboto-Regular.ttf'), 32);
 
     const [isSaving, setIsSaving] = useState(false);
     const [shapes, setShapes] = useState([]); // List of shapes added to the canvas
@@ -463,11 +460,21 @@ export default function ImageEditorScreen({ route }) {
                                 <Group key={shape.id} origin={origin} transform={transform}>
                                     {/* Outline if selected */}
                                     {selectedShapeId === shape.id && shape.type !== 'freehand' && (
-                                        <Rect x={shape.x - shape.size / 2 - 5} y={shape.y - shape.size / 2 - 5} width={shape.type === 'text' && font ? font.getTextWidth(shape.textValue || '') + 10 : shape.size + 10} height={shape.size + 10} color="#00ffff" style="stroke" strokeWidth={2} />
+                                        <Rect x={shape.x - shape.size / 2 - 5} y={shape.y - shape.size / 2 - 5} width={shape.type === 'text' && font ? (font.measureText(shape.textValue || '').width || 0) + 10 : shape.size + 10} height={shape.size + 10} color="#00ffff" style="stroke" strokeWidth={2} />
                                     )}
-                                    {shape.type === 'text' && font && (
-                                        <SkiaText font={font} text={shape.textValue || ''} x={shape.x - (font.getTextWidth(shape.textValue || '') / 2)} y={shape.y + (shape.size / 3)} color={shape.color} />
-                                    )}
+                                    {shape.type === 'text' && font && (() => {
+                                        const textMetrics = font.measureText(shape.textValue || '');
+                                        const textWidth = textMetrics.width || 0;
+                                        return (
+                                            <SkiaText
+                                                font={font}
+                                                text={shape.textValue || ''}
+                                                x={shape.x - (textWidth / 2)}
+                                                y={shape.y + (shape.size / 3)}
+                                                color={shape.color}
+                                            />
+                                        );
+                                    })()}
                                     {shape.type === 'circle' && (
                                         <Group>
                                             <Circle cx={shape.x} cy={shape.y} r={shape.size / 2} color={shape.color} />
