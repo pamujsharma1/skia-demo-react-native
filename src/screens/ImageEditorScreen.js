@@ -20,6 +20,9 @@ import {
     Skia,
     matchFont,
 } from '@shopify/react-native-skia';
+import * as MediaLibrary from 'expo-media-library';
+import * as FileSystem from 'expo-file-system';
+import { useNavigation } from '@react-navigation/native';
 
 const { width, height } = Dimensions.get('window');
 
