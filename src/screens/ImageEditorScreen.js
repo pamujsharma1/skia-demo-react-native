@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Alert, Dimensions, ActivityIndicator, ScrollView, PanResponder } from 'react-native';
 import { PinchGestureHandler, PanGestureHandler, State } from 'react-native-gesture-handler';
+import { TextInput, Platform } from 'react-native';
 import {
     Canvas,
     Image,
@@ -17,12 +18,8 @@ import {
     ImageFormat,
     vec,
     Skia,
-    Paint,
+    matchFont,
 } from '@shopify/react-native-skia';
-import * as MediaLibrary from 'expo-media-library';
-import * as FileSystem from 'expo-file-system';
-import { useNavigation } from '@react-navigation/native';
-import { TextInput } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -56,8 +53,12 @@ export default function ImageEditorScreen({ route }) {
 
     // Load a font for Text shapes
     const customFont = useFont(require('../../assets/Roboto-Regular.ttf'), 32);
-    const systemFontRef = Skia.FontMgr.Ref().matchFamilyStyle("serif", Skia.FontStyle.Normal);
-    const font = customFont || (systemFontRef ? new Skia.Font(systemFontRef, 32) : null);
+
+    // Robust font matching (fallback to system font)
+    const font = customFont || (() => {
+        const fontFamily = Platform.OS === 'ios' ? 'Helvetica' : 'sans-serif';
+        return matchFont({ fontFamily, fontSize: 32 });
+    })();
 
     const [isSaving, setIsSaving] = useState(false);
     const [shapes, setShapes] = useState([]); // List of shapes added to the canvas
@@ -522,32 +523,19 @@ export default function ImageEditorScreen({ route }) {
                                         return (
                                             <Group>
                                                 {lines.map((line, index) => {
-                                                    const textToRender = line || ' '; // Ensure non-empty for measurement
-                                                    const textMetrics = font.measureText(textToRender);
-                                                    const textWidth = textMetrics.width || 0;
+                                                    const textToRender = line || ' ';
+                                                    const textWidth = font.measureText(textToRender).width || 0;
                                                     const yOffset = (index * lineHeight) - (totalHeight / 2) + (fontSize / 1.5);
 
                                                     return (
-                                                        <Group key={index}>
-                                                            {/* Outline for visibility - Using Paint for real stroke */}
-                                                            <SkiaText
-                                                                font={font}
-                                                                text={textToRender}
-                                                                x={shape.x - (textWidth / 2)}
-                                                                y={shape.y + yOffset}
-                                                                color="black"
-                                                            >
-                                                                <Paint style="stroke" strokeWidth={2} color="black" />
-                                                            </SkiaText>
-                                                            {/* Main Text */}
-                                                            <SkiaText
-                                                                font={font}
-                                                                text={textToRender}
-                                                                x={shape.x - (textWidth / 2)}
-                                                                y={shape.y + yOffset}
-                                                                color={shape.color || 'white'}
-                                                            />
-                                                        </Group>
+                                                        <SkiaText
+                                                            key={index}
+                                                            font={font}
+                                                            text={textToRender}
+                                                            x={shape.x - (textWidth / 2)}
+                                                            y={shape.y + yOffset}
+                                                            color={shape.color || 'white'}
+                                                        />
                                                     );
                                                 })}
                                             </Group>
@@ -964,13 +952,13 @@ const styles = StyleSheet.create({
     },
     textInput: {
         flex: 1,
-        backgroundColor: '#222',
+        backgroundColor: '#333',
         color: '#fff',
         paddingHorizontal: 15,
         paddingVertical: 10,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#444',
+        borderColor: '#00ffff',
         fontSize: 16,
     }
 });
