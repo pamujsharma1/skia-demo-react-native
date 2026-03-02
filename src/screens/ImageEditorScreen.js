@@ -604,50 +604,49 @@ export default function ImageEditorScreen({ route }) {
             </View>
 
             <View style={styles.controlsContainer}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                    <Text style={[styles.subtitle, { marginBottom: 0 }]}>Tools & Shapes (Tap to stamp)</Text>
-                    <TouchableOpacity
-                        style={[
-                            styles.filterButton,
-                            {
-                                flex: 0,
-                                paddingHorizontal: 15,
-                                paddingVertical: 5,
-                                backgroundColor: isNoteMode ? 'rgba(255, 255, 0, 0.2)' : '#222',
-                                borderColor: isNoteMode ? '#ffff00' : '#333',
-                                marginRight: 10
-                            }
-                        ]}
-                        onPress={() => {
-                            setIsNoteMode(!isNoteMode);
-                            if (!isNoteMode) setIsDrawingMode(false);
-                        }}
-                    >
-                        <Text style={[styles.filterText, { color: isNoteMode ? '#ffff00' : '#fff' }]}>
-                            {isNoteMode ? 'Note Mode: ON' : 'Add Note (Tap)'}
-                        </Text>
-                    </TouchableOpacity>
+                <View style={{ marginBottom: 10 }}>
+                    <Text style={styles.subtitle}>Tools & Shapes (Tap to stamp)</Text>
+                    <View style={{ flexDirection: 'row', gap: 10, marginTop: 5 }}>
+                        <TouchableOpacity
+                            style={[
+                                styles.filterButton,
+                                {
+                                    flex: 1,
+                                    paddingVertical: 8,
+                                    backgroundColor: isNoteMode ? 'rgba(255, 255, 0, 0.2)' : '#222',
+                                    borderColor: isNoteMode ? '#ffff00' : '#333',
+                                }
+                            ]}
+                            onPress={() => {
+                                setIsNoteMode(!isNoteMode);
+                                if (!isNoteMode) setIsDrawingMode(false);
+                            }}
+                        >
+                            <Text style={[styles.filterText, { color: isNoteMode ? '#ffff00' : '#fff' }]}>
+                                {isNoteMode ? 'Note Mode: ON' : 'Add Note (Tap)'}
+                            </Text>
+                        </TouchableOpacity>
 
-                    <TouchableOpacity
-                        style={[
-                            styles.filterButton,
-                            {
-                                flex: 0,
-                                paddingHorizontal: 15,
-                                paddingVertical: 5,
-                                backgroundColor: isDrawingMode ? 'rgba(0, 255, 255, 0.2)' : '#222',
-                                borderColor: isDrawingMode ? '#00ffff' : '#333'
-                            }
-                        ]}
-                        onPress={() => {
-                            setIsDrawingMode(!isDrawingMode);
-                            if (!isDrawingMode) setIsNoteMode(false);
-                        }}
-                    >
-                        <Text style={[styles.filterText, { color: isDrawingMode ? '#00ffff' : '#fff' }]}>
-                            {isDrawingMode ? 'Drawing: ON' : 'Draw (Pen)'}
-                        </Text>
-                    </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[
+                                styles.filterButton,
+                                {
+                                    flex: 1,
+                                    paddingVertical: 8,
+                                    backgroundColor: isDrawingMode ? 'rgba(0, 255, 255, 0.2)' : '#222',
+                                    borderColor: isDrawingMode ? '#00ffff' : '#333'
+                                }
+                            ]}
+                            onPress={() => {
+                                setIsDrawingMode(!isDrawingMode);
+                                if (!isDrawingMode) setIsNoteMode(false);
+                            }}
+                        >
+                            <Text style={[styles.filterText, { color: isDrawingMode ? '#00ffff' : '#fff' }]}>
+                                {isDrawingMode ? 'Drawing: ON' : 'Draw (Pen)'}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
                 <ScrollView
                     horizontal
