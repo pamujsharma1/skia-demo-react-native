@@ -131,7 +131,7 @@ export default function ImageEditorScreen({ route }) {
                 setSelectedShapeId(newShape.id);
                 setColorMode('fill');
                 activeShapeRef.current = null; // Don't drag immediately
-                setIsScrollEnabled(true);
+                setIsScrollEnabled(true); // Explicitly keep scroll enabled for page swipes
                 setIsNoteMode(false); // Auto-disable note mode after placement
                 return;
             }
@@ -179,13 +179,16 @@ export default function ImageEditorScreen({ route }) {
                 if (touchedShape) {
                     setSelectedShapeId(touchedShape.id);
                     activeShapeRef.current = touchedShape.id;
-                    setIsScrollEnabled(false);
+                    setIsScrollEnabled(false); // Disable scroll only when dragging a shape
                     // Save starting coordinates for all shapes (or just the touched one)
                     return currentShapes.map(s => ({ ...s, startX: s.x, startY: s.y }));
                 } else {
                     setSelectedShapeId(null);
                     activeShapeRef.current = null;
-                    setIsScrollEnabled(false); // Also disable scroll when panning image
+                    // Only disable scroll for image panning if we are significantly zoomed in
+                    // This allows vertical swipes to scroll the page when at 1x zoom
+                    const isZoomed = imageScale > 1.05;
+                    setIsScrollEnabled(!isZoomed);
                     return currentShapes;
                 }
             });
