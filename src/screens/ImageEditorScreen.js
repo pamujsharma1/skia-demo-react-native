@@ -201,7 +201,7 @@ export default function ImageEditorScreen({ route }) {
             sides: shapeStyle.type === 'polygon' ? 6 : shapeStyle.type === 'star' ? 5 : 0,
             strokeColor: shapeStyle.type === 'text' ? 'transparent' : shapeStyle.color,
             strokeWidth: shapeStyle.type === 'line' ? 8 : shapeStyle.type === 'points' ? 15 : 4,
-            textValue: shapeStyle.type === 'text' ? 'Double tap to edit' : undefined,
+            textValue: shapeStyle.type === 'text' ? 'Double tap to edit\nAdd more lines here' : undefined,
         };
         setShapes([...shapes, newShape]);
         setSelectedShapeId(newShape.id);
@@ -459,20 +459,71 @@ export default function ImageEditorScreen({ route }) {
                             return (
                                 <Group key={shape.id} origin={origin} transform={transform}>
                                     {/* Outline if selected */}
-                                    {selectedShapeId === shape.id && shape.type !== 'freehand' && (
-                                        <Rect x={shape.x - shape.size / 2 - 5} y={shape.y - shape.size / 2 - 5} width={shape.type === 'text' && font ? (font.measureText(shape.textValue || '').width || 0) + 10 : shape.size + 10} height={shape.size + 10} color="#00ffff" style="stroke" strokeWidth={2} />
-                                    )}
-                                    {shape.type === 'text' && font && (() => {
-                                        const textMetrics = font.measureText(shape.textValue || '');
-                                        const textWidth = textMetrics.width || 0;
+                                    {/* Outline if selected */}
+                                    {selectedShapeId === shape.id && shape.type !== 'freehand' && (() => {
+                                        if (shape.type === 'text' && font) {
+                                            const lines = (shape.textValue || '').split('\n');
+                                            const fontSize = 32;
+                                            const lineHeight = fontSize * 1.2;
+                                            const totalHeight = lines.length * lineHeight;
+                                            const maxWidth = lines.reduce((max, line) => {
+                                                const w = font.measureText(line).width || 0;
+                                                return Math.max(max, w);
+                                            }, 0);
+
+                                            return (
+                                                <Rect
+                                                    x={shape.x - maxWidth / 2 - 10}
+                                                    y={shape.y - totalHeight / 2 - 5}
+                                                    width={maxWidth + 20}
+                                                    height={totalHeight + 10}
+                                                    color="#00ffff"
+                                                    style="stroke"
+                                                    strokeWidth={2}
+                                                />
+                                            );
+                                        }
                                         return (
-                                            <SkiaText
-                                                font={font}
-                                                text={shape.textValue || ''}
-                                                x={shape.x - (textWidth / 2)}
-                                                y={shape.y + (shape.size / 3)}
-                                                color={shape.color}
-                                            />
+                                            <Rect x={shape.x - shape.size / 2 - 5} y={shape.y - shape.size / 2 - 5} width={shape.size + 10} height={shape.size + 10} color="#00ffff" style="stroke" strokeWidth={2} />
+                                        );
+                                    })()}
+                                    {shape.type === 'text' && font && (() => {
+                                        const lines = (shape.textValue || '').split('\n');
+                                        const fontSize = 32;
+                                        const lineHeight = fontSize * 1.2;
+                                        const totalHeight = lines.length * lineHeight;
+
+                                        return (
+                                            <Group>
+                                                {lines.map((line, index) => {
+                                                    const textMetrics = font.measureText(line);
+                                                    const textWidth = textMetrics.width || 0;
+                                                    const yOffset = (index * lineHeight) - (totalHeight / 2) + (fontSize / 1.5);
+
+                                                    return (
+                                                        <Group key={index}>
+                                                            {/* Outline for visibility */}
+                                                            <SkiaText
+                                                                font={font}
+                                                                text={line}
+                                                                x={shape.x - (textWidth / 2)}
+                                                                y={shape.y + yOffset}
+                                                                color="black"
+                                                                style="stroke"
+                                                                strokeWidth={2}
+                                                            />
+                                                            {/* Main Text */}
+                                                            <SkiaText
+                                                                font={font}
+                                                                text={line}
+                                                                x={shape.x - (textWidth / 2)}
+                                                                y={shape.y + yOffset}
+                                                                color={shape.color}
+                                                            />
+                                                        </Group>
+                                                    );
+                                                })}
+                                            </Group>
                                         );
                                     })()}
                                     {shape.type === 'circle' && (
@@ -613,11 +664,14 @@ export default function ImageEditorScreen({ route }) {
                             {selectedShape && selectedShape.type === 'text' && (
                                 <View style={[styles.sizeRow, { marginTop: 15 }]}>
                                     <TextInput
-                                        style={styles.textInput}
+                                        style={[styles.textInput, { height: 100 }]}
                                         value={selectedShape.textValue}
                                         onChangeText={updateText}
                                         placeholder="Enter text..."
                                         placeholderTextColor="#888"
+                                        multiline={true}
+                                        numberOfLines={4}
+                                        textAlignVertical="top"
                                     />
                                 </View>
                             )}
