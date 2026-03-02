@@ -62,6 +62,7 @@ export default function ImageEditorScreen({ route }) {
     const [isScrollEnabled, setIsScrollEnabled] = useState(true);
     const [colorMode, setColorMode] = useState('fill'); // 'fill' or 'stroke'
     const [isDrawingMode, setIsDrawingMode] = useState(false);
+    const [isNoteMode, setIsNoteMode] = useState(false);
 
     // Image Zoom & Pan State
     const [imageScale, setImageScale] = useState(1);
@@ -105,6 +106,28 @@ export default function ImageEditorScreen({ route }) {
         if (event.nativeEvent.state === State.BEGAN) {
             const touchX = event.nativeEvent.x;
             const touchY = event.nativeEvent.y;
+
+            if (isNoteMode) {
+                const newShape = {
+                    id: Date.now().toString(),
+                    type: 'text',
+                    x: touchX,
+                    y: touchY,
+                    size: 40,
+                    rotation: 0,
+                    color: COLORS[5], // default white
+                    strokeColor: 'transparent',
+                    strokeWidth: 4,
+                    textValue: 'New Note\nTap to edit',
+                };
+                setShapes(currentShapes => [...currentShapes, newShape]);
+                setSelectedShapeId(newShape.id);
+                setColorMode('fill');
+                activeShapeRef.current = null; // Don't drag immediately
+                setIsScrollEnabled(true);
+                setIsNoteMode(false); // Auto-disable note mode after placement
+                return;
+            }
 
             if (isDrawingMode) {
                 const newShape = {
@@ -595,11 +618,36 @@ export default function ImageEditorScreen({ route }) {
                                 flex: 0,
                                 paddingHorizontal: 15,
                                 paddingVertical: 5,
+                                backgroundColor: isNoteMode ? 'rgba(255, 255, 0, 0.2)' : '#222',
+                                borderColor: isNoteMode ? '#ffff00' : '#333',
+                                marginRight: 10
+                            }
+                        ]}
+                        onPress={() => {
+                            setIsNoteMode(!isNoteMode);
+                            if (!isNoteMode) setIsDrawingMode(false);
+                        }}
+                    >
+                        <Text style={[styles.filterText, { color: isNoteMode ? '#ffff00' : '#fff' }]}>
+                            {isNoteMode ? 'Note Mode: ON' : 'Add Note (Tap)'}
+                        </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[
+                            styles.filterButton,
+                            {
+                                flex: 0,
+                                paddingHorizontal: 15,
+                                paddingVertical: 5,
                                 backgroundColor: isDrawingMode ? 'rgba(0, 255, 255, 0.2)' : '#222',
                                 borderColor: isDrawingMode ? '#00ffff' : '#333'
                             }
                         ]}
-                        onPress={() => setIsDrawingMode(!isDrawingMode)}
+                        onPress={() => {
+                            setIsDrawingMode(!isDrawingMode);
+                            if (!isDrawingMode) setIsNoteMode(false);
+                        }}
                     >
                         <Text style={[styles.filterText, { color: isDrawingMode ? '#00ffff' : '#fff' }]}>
                             {isDrawingMode ? 'Drawing: ON' : 'Draw (Pen)'}
