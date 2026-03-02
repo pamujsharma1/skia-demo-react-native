@@ -54,6 +54,7 @@ export default function ImageEditorScreen({ route }) {
     const [selectedShapeId, setSelectedShapeId] = useState(null);
     const [isScrollEnabled, setIsScrollEnabled] = useState(true);
     const [colorMode, setColorMode] = useState('fill'); // 'fill' or 'stroke'
+    const [isDrawingMode, setIsDrawingMode] = useState(false);
 
     // Image Zoom & Pan State
     const [imageScale, setImageScale] = useState(1);
@@ -68,6 +69,15 @@ export default function ImageEditorScreen({ route }) {
         if (activeShapeRef.current) {
             setShapes((prev) => prev.map(shape => {
                 if (shape.id === activeShapeRef.current) {
+                    if (shape.type === 'freehand') {
+                        return {
+                            ...shape,
+                            points: [...shape.points, {
+                                x: shape.startX + event.nativeEvent.translationX,
+                                y: shape.startY + event.nativeEvent.translationY
+                            }]
+                        };
+                    }
                     return {
                         ...shape,
                         x: shape.startX + event.nativeEvent.translationX,
@@ -89,10 +99,34 @@ export default function ImageEditorScreen({ route }) {
             const touchX = event.nativeEvent.x;
             const touchY = event.nativeEvent.y;
 
+            if (isDrawingMode) {
+                const newShape = {
+                    id: Date.now().toString(),
+                    type: 'freehand',
+                    points: [{ x: touchX, y: touchY }],
+                    startX: touchX,
+                    startY: touchY,
+                    color: 'transparent',
+                    strokeColor: COLORS[0], // default cyan
+                    strokeWidth: 4,
+                    x: 0,
+                    y: 0,
+                    size: 0,
+                    rotation: 0,
+                };
+                setShapes(currentShapes => [...currentShapes, newShape]);
+                setSelectedShapeId(newShape.id);
+                setColorMode('stroke');
+                activeShapeRef.current = newShape.id;
+                setIsScrollEnabled(false);
+                return;
+            }
+
             let touchedShape = null;
             setShapes((currentShapes) => {
                 for (let i = currentShapes.length - 1; i >= 0; i--) {
                     const shape = currentShapes[i];
+                    if (shape.type === 'freehand') continue; // Don't tap-select freehand shapes by center for now
                     const margin = 20;
                     if (
                         touchX >= shape.x - shape.size / 2 - margin &&
@@ -394,7 +428,7 @@ export default function ImageEditorScreen({ route }) {
                             return (
                                 <Group key={shape.id} origin={origin} transform={transform}>
                                     {/* Outline if selected */}
-                                    {selectedShapeId === shape.id && (
+                                    {selectedShapeId === shape.id && shape.type !== 'freehand' && (
                                         <Rect x={shape.x - shape.size / 2 - 5} y={shape.y - shape.size / 2 - 5} width={shape.size + 10} height={shape.size + 10} color="#00ffff" style="stroke" strokeWidth={2} />
                                     )}
                                     {shape.type === 'circle' && (
@@ -423,6 +457,16 @@ export default function ImageEditorScreen({ route }) {
                                     )}
                                     {shape.type === 'line' && <Line p1={vec(shape.x - shape.size / 2, shape.y - shape.size / 2)} p2={vec(shape.x + shape.size / 2, shape.y + shape.size / 2)} color={shape.strokeColor !== 'transparent' ? shape.strokeColor : shape.color} strokeWidth={shape.strokeWidth} />}
                                     {shape.type === 'points' && <Points points={createPoints(shape.x, shape.y, shape.size / 1.5)} mode="points" color={shape.strokeColor !== 'transparent' ? shape.strokeColor : shape.color} strokeWidth={shape.strokeWidth} strokeCap="round" />}
+                                    {shape.type === 'freehand' && shape.points && shape.points.length > 0 && (
+                                        <Path
+                                            path={shape.points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')}
+                                            color={shape.strokeColor !== 'transparent' ? shape.strokeColor : '#00ffff'}
+                                            style="stroke"
+                                            strokeWidth={shape.strokeWidth || 4}
+                                            strokeCap="round"
+                                            strokeJoin="round"
+                                        />
+                                    )}
                                 </Group>
                             );
                         })}
@@ -447,7 +491,26 @@ export default function ImageEditorScreen({ route }) {
             </View>
 
             <View style={styles.controlsContainer}>
-                <Text style={styles.subtitle}>Add Shapes (Tap to stamp)</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <Text style={[styles.subtitle, { marginBottom: 0 }]}>Tools & Shapes (Tap to stamp)</Text>
+                    <TouchableOpacity
+                        style={[
+                            styles.filterButton,
+                            {
+                                flex: 0,
+                                paddingHorizontal: 15,
+                                paddingVertical: 5,
+                                backgroundColor: isDrawingMode ? 'rgba(0, 255, 255, 0.2)' : '#222',
+                                borderColor: isDrawingMode ? '#00ffff' : '#333'
+                            }
+                        ]}
+                        onPress={() => setIsDrawingMode(!isDrawingMode)}
+                    >
+                        <Text style={[styles.filterText, { color: isDrawingMode ? '#00ffff' : '#fff' }]}>
+                            {isDrawingMode ? 'Drawing: ON' : 'Draw (Pen)'}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
                 <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}

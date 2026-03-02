@@ -60,7 +60,7 @@ export default function DashboardScreen() {
                 <AntigravityOrb />
             </View>
             <View style={styles.contentContainer}>
-                <Text style={styles.title}>Antigravity Visuals</Text>
+                <Text style={styles.title}>Visuals</Text>
                 <Text style={styles.subtitle}>Select an image to enhance</Text>
 
                 <View style={styles.buttonContainer}>
