@@ -12,17 +12,21 @@ import {
     Path,
     Line,
     Points,
+    Text as SkiaText,
+    useFont,
+    ImageFormat,
     vec,
     Skia,
 } from '@shopify/react-native-skia';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 import { useNavigation } from '@react-navigation/native';
+import { TextInput } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
-// Predefined shape styles for the user to add
 const SHAPE_STYLES = [
+    { type: 'text', color: 'rgba(255, 255, 255, 1)' },
     { type: 'circle', color: 'rgba(0, 255, 255, 0.7)' },
     { type: 'rect', color: 'rgba(255, 0, 255, 0.7)' },
     { type: 'star', color: 'rgba(255, 255, 0, 0.8)' },
@@ -48,6 +52,9 @@ export default function ImageEditorScreen({ route }) {
     const image = useImage(imageUri);
     const canvasRef = useCanvasRef();
     const navigation = useNavigation();
+
+    // Load a font for Text shapes
+    const font = useFont(require('../../assets/Roboto-Regular.ttf'), 32);
 
     const [isSaving, setIsSaving] = useState(false);
     const [shapes, setShapes] = useState([]); // List of shapes added to the canvas
@@ -186,18 +193,29 @@ export default function ImageEditorScreen({ route }) {
         const newShape = {
             id: Date.now().toString(),
             type: shapeStyle.type,
-            color: 'transparent',
+            color: shapeStyle.type === 'text' ? shapeStyle.color : 'transparent',
             x: width / 2 - 40 + offset, // Approximate center horizontal
             y: (height * 0.6) / 2 + offset, // Approximate center vertical
-            size: 80,
+            size: shapeStyle.type === 'text' ? 40 : 80,
             rotation: 0,
             sides: shapeStyle.type === 'polygon' ? 6 : shapeStyle.type === 'star' ? 5 : 0,
-            strokeColor: shapeStyle.color,
+            strokeColor: shapeStyle.type === 'text' ? 'transparent' : shapeStyle.color,
             strokeWidth: shapeStyle.type === 'line' ? 8 : shapeStyle.type === 'points' ? 15 : 4,
+            textValue: shapeStyle.type === 'text' ? 'Double tap to edit' : undefined,
         };
         setShapes([...shapes, newShape]);
         setSelectedShapeId(newShape.id);
-        setColorMode('stroke');
+        setColorMode(shapeStyle.type === 'text' ? 'fill' : 'stroke');
+    };
+
+    const updateText = (text) => {
+        if (!selectedShapeId) return;
+        setShapes((prev) => prev.map(s => {
+            if (s.id === selectedShapeId) {
+                return { ...s, textValue: text };
+            }
+            return s;
+        }));
     };
 
     const rotateLastShape = () => {
@@ -304,7 +322,16 @@ export default function ImageEditorScreen({ route }) {
             const skImage = canvasRef.current.makeImageSnapshot();
             if (skImage) {
                 // Encode to base64
-                const data = skImage.encodeToBase64();
+                let data = null;
+                try {
+                    // Skia Image format for encoding (usually 3 for JPEG, 4 for PNG)
+                    const format = ImageFormat ? ImageFormat.PNG : 4;
+                    data = skImage.encodeToBase64(format, 100);
+                } catch (e) {
+                    console.log("Failed to encode with format enum, trying fallback...", e);
+                    data = skImage.encodeToBase64();
+                }
+
                 if (data) {
                     // Temporarily save base64 to file
                     const tempUri = FileSystem.cacheDirectory + `edited-image-${Date.now()}.png`;
@@ -316,7 +343,11 @@ export default function ImageEditorScreen({ route }) {
                     await MediaLibrary.saveToLibraryAsync(tempUri);
                     Alert.alert('Success', 'Image saved to your gallery!');
                     navigation.goBack();
+                } else {
+                    Alert.alert('Error', 'Failed to encode the image.');
                 }
+            } else {
+                Alert.alert('Error', 'Failed to snapshot the canvas.');
             }
         } catch (error) {
             console.error(error);
@@ -429,7 +460,10 @@ export default function ImageEditorScreen({ route }) {
                                 <Group key={shape.id} origin={origin} transform={transform}>
                                     {/* Outline if selected */}
                                     {selectedShapeId === shape.id && shape.type !== 'freehand' && (
-                                        <Rect x={shape.x - shape.size / 2 - 5} y={shape.y - shape.size / 2 - 5} width={shape.size + 10} height={shape.size + 10} color="#00ffff" style="stroke" strokeWidth={2} />
+                                        <Rect x={shape.x - shape.size / 2 - 5} y={shape.y - shape.size / 2 - 5} width={shape.type === 'text' && font ? font.getTextWidth(shape.textValue || '') + 10 : shape.size + 10} height={shape.size + 10} color="#00ffff" style="stroke" strokeWidth={2} />
+                                    )}
+                                    {shape.type === 'text' && font && (
+                                        <SkiaText font={font} text={shape.textValue || ''} x={shape.x - (font.getTextWidth(shape.textValue || '') / 2)} y={shape.y + (shape.size / 3)} color={shape.color} />
                                     )}
                                     {shape.type === 'circle' && (
                                         <Group>
@@ -565,6 +599,18 @@ export default function ImageEditorScreen({ route }) {
                                     </>
                                 )}
                             </View>
+
+                            {selectedShape && selectedShape.type === 'text' && (
+                                <View style={[styles.sizeRow, { marginTop: 15 }]}>
+                                    <TextInput
+                                        style={styles.textInput}
+                                        value={selectedShape.textValue}
+                                        onChangeText={updateText}
+                                        placeholder="Enter text..."
+                                        placeholderTextColor="#888"
+                                    />
+                                </View>
+                            )}
 
                             <View style={[styles.sizeRow, { marginTop: 15 }]}>
                                 <TouchableOpacity
@@ -800,4 +846,15 @@ const styles = StyleSheet.create({
         fontSize: 12,
         textTransform: 'uppercase',
     },
+    textInput: {
+        flex: 1,
+        backgroundColor: '#222',
+        color: '#fff',
+        paddingHorizontal: 15,
+        paddingVertical: 10,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#444',
+        fontSize: 16,
+    }
 });
