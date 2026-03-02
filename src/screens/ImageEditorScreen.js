@@ -54,7 +54,10 @@ export default function ImageEditorScreen({ route }) {
     const navigation = useNavigation();
 
     // Load a font for Text shapes
-    const font = useFont(require('../../assets/Roboto-Regular.ttf'), 32);
+    const customFont = useFont(require('../../assets/Roboto-Regular.ttf'), 32);
+    // Fallback system font if custom font fails to load
+    const systemFont = Skia.FontMgr.Ref().matchFamilyStyle("serif", Skia.FontStyle.Normal);
+    const font = customFont || (systemFont ? new Skia.Font(systemFont, 32) : null);
 
     const [isSaving, setIsSaving] = useState(false);
     const [shapes, setShapes] = useState([]); // List of shapes added to the canvas
