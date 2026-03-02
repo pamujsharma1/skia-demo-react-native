@@ -17,6 +17,7 @@ import {
     ImageFormat,
     vec,
     Skia,
+    Paint,
 } from '@shopify/react-native-skia';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
@@ -54,7 +55,9 @@ export default function ImageEditorScreen({ route }) {
     const navigation = useNavigation();
 
     // Load a font for Text shapes
-    const font = useFont(require('../../assets/Roboto-Regular.ttf'), 32);
+    const customFont = useFont(require('../../assets/Roboto-Regular.ttf'), 32);
+    const systemFontRef = Skia.FontMgr.Ref().matchFamilyStyle("serif", Skia.FontStyle.Normal);
+    const font = customFont || (systemFontRef ? new Skia.Font(systemFontRef, 32) : null);
 
     const [isSaving, setIsSaving] = useState(false);
     const [shapes, setShapes] = useState([]); // List of shapes added to the canvas
@@ -519,29 +522,30 @@ export default function ImageEditorScreen({ route }) {
                                         return (
                                             <Group>
                                                 {lines.map((line, index) => {
-                                                    const textMetrics = font.measureText(line);
+                                                    const textToRender = line || ' '; // Ensure non-empty for measurement
+                                                    const textMetrics = font.measureText(textToRender);
                                                     const textWidth = textMetrics.width || 0;
                                                     const yOffset = (index * lineHeight) - (totalHeight / 2) + (fontSize / 1.5);
 
                                                     return (
                                                         <Group key={index}>
-                                                            {/* Outline for visibility */}
+                                                            {/* Outline for visibility - Using Paint for real stroke */}
                                                             <SkiaText
                                                                 font={font}
-                                                                text={line}
+                                                                text={textToRender}
                                                                 x={shape.x - (textWidth / 2)}
                                                                 y={shape.y + yOffset}
                                                                 color="black"
-                                                                style="stroke"
-                                                                strokeWidth={2}
-                                                            />
+                                                            >
+                                                                <Paint style="stroke" strokeWidth={2} color="black" />
+                                                            </SkiaText>
                                                             {/* Main Text */}
                                                             <SkiaText
                                                                 font={font}
-                                                                text={line}
+                                                                text={textToRender}
                                                                 x={shape.x - (textWidth / 2)}
                                                                 y={shape.y + yOffset}
-                                                                color={shape.color}
+                                                                color={shape.color || 'white'}
                                                             />
                                                         </Group>
                                                     );
